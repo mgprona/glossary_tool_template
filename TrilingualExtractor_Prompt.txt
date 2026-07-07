@@ -28,7 +28,11 @@ You must follow these rules:
     "korean_original": "아서 펜드래건",
     "english_version": "Arthur Pendragon",
     "thai_version": "อาเธอร์ เพนดรากอน",
-    "aliases": ["King of Knights"],
+    "aliases": {
+      "titles": ["King of Knights"],
+      "mis_translations": [],
+      "other_names": ["King Arthur"]
+    },
     "description": {
       "en": "The legendary King of Camelot and wielder of Excalibur.",
       "th": "กษัตริย์ในตำนานแห่งคาเมล็อตและผู้ครอบครองดาบเอ็กซ์คาลิเบอร์"
@@ -36,6 +40,11 @@ You must follow these rules:
   }
 ]
 ```
+
+### Alias categories:
+- `titles`: Epithets, nicknames, or honorifics (e.g. "King of Knights", "The Demon Lord")
+- `mis_translations`: Machine translation errors or incorrect fan translations (e.g. "ดาบพันเล่ม" instead of "ดาบร้อยเล่ม")
+- `other_names`: Legitimate alternative spellings, romanizations, or language variants
 
 ---
 
