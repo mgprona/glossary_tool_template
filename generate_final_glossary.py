@@ -4,7 +4,7 @@ import re
 
 # Paths
 status_path = "subagent_status.json"
-out_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+out_dir = os.path.join(os.path.dirname(__file__), "output")
 
 # UID category prefixes
 CATEGORY_PREFIX = {

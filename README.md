@@ -8,11 +8,12 @@
 ```text
 glossary_tool_template/
 │
-├── README.md                     <-- คู่มือนี้
+├── README.md                      <-- คู่มือนี้
 ├── TrilingualExtractor_Prompt.txt <-- พรอมต์สกัดภาษาสำหรับ AI (System & User prompts)
-├── aggregate_all.py              <-- [สคริปต์ขั้นที่ 2] รวมไฟล์ JSON ผลลัพธ์ดิบจากโฟลเดอร์ raw_extractions
-├── generate_final_glossary.py     <-- [สคริปต์ขั้นที่ 3] จัดกลุ่มความสัมพันธ์ ตรวจสอบ และเขียนคลังศัพท์มาตรฐาน
-└── raw_extractions/              <-- โฟลเดอร์สำหรับใส่ผลลัพธ์การสกัดทีละตอนของ AI (เช่น ch001.json, ch002.json)
+├── aggregate_all.py               <-- [ขั้นที่ 2] รวมไฟล์ JSON จาก raw_extractions/
+├── generate_final_glossary.py     <-- [ขั้นที่ 3] Merge + UID + Relations + ส่งออก
+├── raw_extractions/               <-- ใส่ผลสกัดดิบทีละตอน (ch001.json, ch002.json, ...)
+└── output/                        <-- ผลลัพธ์สุดท้าย (glossary.json, glossary.md)
 ```
 
 ---
@@ -42,7 +43,7 @@ python aggregate_all.py
 ```bash
 python generate_final_glossary.py
 ```
-*สคริปต์จะทำการสร้างไฟล์ `glossary.json` (ฐานข้อมูลสำหรับป้อน AI แปลภาษา) และ `glossary.md` (สำหรับมนุษย์เปิดอ่าน/แก้ไข) ไว้ที่โฟลเดอร์หลักภายนอกเทมเพลต*
+*สคริปต์จะทำการสร้างไฟล์ `glossary.json` (ฐานข้อมูลสำหรับป้อน AI แปลภาษา) และ `glossary.md` (สำหรับมนุษย์เปิดอ่าน/แก้ไข) ไว้ที่โฟลเดอร์ `output/`*
 
 ---
 
@@ -71,3 +72,37 @@ python generate_final_glossary.py
    ```
 3. **`manual_chapters` (ชุดข้อมูลเสริมความแม่นยำ):**
    หากมีตอนไหนที่กระบวนการสกัดพลาดหรือคุณอยากแต่งเติมข้อมูลเพิ่มด้วยตนเอง สามารถนำมาใส่ในดิกชันนารีนี้ได้โดยระบุเลขบท
+
+4. **`entity_relations` (Knowledge Graph — ความสัมพันธ์ระหว่าง Entity):**
+   กำหนดความสัมพันธ์ระหว่างตัวละคร สังกัด และความเกี่ยวข้อง เพื่อสร้างกราฟความรู้:
+   ```python
+   entity_relations = {
+       "검무극(劍無極)": {
+           "faction": "천마신교(天魔神敎)",
+           "associated_entities": ["이안(李安)", "화무기(華武技)"]
+       }
+   }
+   ```
+   ระบบจะ resolve ชื่อภาษาเกาหลีเป็น `uid` ให้โดยอัตโนมัติ
+
+## 🧬 Schema ข้อมูล
+
+แต่ละ entity ใน `glossary.json` มีโครงสร้างดังนี้:
+```json
+{
+  "uid": "char_geom_mugeuk_001",
+  "category": "Character",
+  "korean_original": "검무극(劍無極)",
+  "english_version": "Geom Mugeuk",
+  "thai_version": "กอมมูกึก",
+  "aliases": {
+    "titles": ["บุตรแห่งกระบี่เทพ"],
+    "mis_translations": [],
+    "other_names": ["Geom Mu-geuk"]
+  },
+  "description": { "en": "...", "th": "..." },
+  "source_chapters": [1, 2, 11],
+  "faction_id": "org_heavenly_demon_divine_sect_007",
+  "associated_entities": ["char_lee_ahn_010"]
+}
+```

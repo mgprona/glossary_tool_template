@@ -7,6 +7,7 @@ __pycache__/
 glossary.json
 glossary.md
 subagent_status.json
+output/
 
 # Raw extraction data (user's private data)
 raw_extractions/
