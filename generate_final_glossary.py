@@ -384,4 +384,4 @@ if __name__ == "__main__":
     print(f"Total compiled unique items: {len(final_glossary)}")
     print(f"Description conflicts flagged: {len(_conflicts)}")
     if _conflicts:
-        print(f"  → See: {os.path.join(out_dir, 'conflict_report.json')}")
+        print(f"  => See: {os.path.join(out_dir, 'conflict_report.json')}")

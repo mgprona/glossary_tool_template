@@ -120,7 +120,7 @@ def aggregate_local_jsons():
         if len(validation_errors) > 20:
             print(f"    ... and {len(validation_errors) - 20} more errors")
     else:
-        print(f"\n  ✓ All entries passed validation.")
+        print(f"\n  [OK] All entries passed validation.")
 
     # Save validation report
     os.makedirs("output", exist_ok=True)
