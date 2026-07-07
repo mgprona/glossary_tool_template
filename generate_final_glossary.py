@@ -46,44 +46,24 @@ canonical_keys = {
     # "이공자": "검무극(劍無極)",
 }
 
-# Entity relations — define faction_id and associated_entities per entity
-# Keys are Korean original names. Relations are resolved to UIDs during post-processing.
-entity_relations = {
-    "검무극(劍無極)": {
-        "faction": "천마신교(天魔神敎)",
-        "associated_entities": ["귀령자(鬼靈子)", "서대룡(徐大龍)", "이안(李安)", "고당(高黨)", "화무기(華武技)"]
-    },
-    "이안(李安)": {
-        "faction": "남도종",
-        "associated_entities": ["검무극(劍無極)", "서대룡(徐大龍)"]
-    },
-    "화무기(華武技)": {
-        "faction": "무림맹(武林盟)",
-        "associated_entities": ["검무극(劍無極)"]
-    },
-    "서대룡(徐大龍)": {
-        "faction": "천마신교(天魔神敎)",
-        "associated_entities": ["검무극(劍無極)", "이안(李安)"]
-    },
-    "고당(高黨)": {
-        "faction": "천마신교(天魔神敎)",
-        "associated_entities": ["검무극(劍無極)"]
-    },
-    "귀령자(鬼靈子)": {
-        "faction": "귀문(鬼門)",
-        "associated_entities": ["검무극(劍無極)", "서진(徐眞)"]
-    },
-    "혈천도마": {
-        "faction": "남도종",
-        "associated_entities": ["이안(李安)"]
-    },
-    "천마신교(天魔神敎)": {
-        "associated_entities": ["검무극(劍無極)", "서대룡(徐大龍)", "고당(高黨)", "구평호(具坪浩)"]
-    },
-    "무림맹(武林盟)": {
-        "associated_entities": ["화무기(華武技)", "일화검존(一花劍尊)"]
-    },
-}
+# Entity relations for knowledge graph linking
+# Key: Korean Original -> values: faction (Korean Original), entities (list of Korean Originals)
+# These are resolved to UIDs during post-processing.
+# Example:
+# entity_relations = {
+#     "검무극": {
+#         "faction": "천마신교",
+#         "associated_entities": ["검로아", "귀령자"]
+#     },
+#     "천마신교": {
+#         "associated_entities": ["검무극", "서대룡"]
+#     }
+# }
+entity_relations = {}
+
+# Internal: tracks description conflicts during merge
+_conflicts: list[dict] = []
+
 
 def safe_str(val):
     return (val or "").strip()
@@ -137,6 +117,8 @@ def load_all_chapters():
     return all_outputs
 
 def merge_glossary(outputs):
+    global _conflicts
+    _conflicts = []
     merged = {}
     uid_counters = {v: 0 for v in CATEGORY_PREFIX.values()}
 
@@ -215,9 +197,31 @@ def merge_glossary(outputs):
                 new_desc_en = safe_str(entry.get("description", {}).get("en", ""))
                 new_desc_th = safe_str(entry.get("description", {}).get("th", ""))
                 if new_desc_en and len(new_desc_en) > len(existing["description"]["en"]):
+                    old_en = existing["description"]["en"]
                     existing["description"]["en"] = new_desc_en
+                    if old_en and len(old_en) > 20 and len(new_desc_en) > len(old_en) * 1.5:
+                        _conflicts.append({
+                            "entity": raw_key,
+                            "uid": existing["uid"],
+                            "chapter": ch_num,
+                            "field": "description.en",
+                            "old": old_en[:200] + ("..." if len(old_en) > 200 else ""),
+                            "new": new_desc_en[:200] + ("..." if len(new_desc_en) > 200 else ""),
+                            "reason": f"length changed from {len(old_en)} to {len(new_desc_en)} chars"
+                        })
                 if new_desc_th and len(new_desc_th) > len(existing["description"]["th"]):
+                    old_th = existing["description"]["th"]
                     existing["description"]["th"] = new_desc_th
+                    if old_th and len(old_th) > 20 and len(new_desc_th) > len(old_th) * 1.5:
+                        _conflicts.append({
+                            "entity": raw_key,
+                            "uid": existing["uid"],
+                            "chapter": ch_num,
+                            "field": "description.th",
+                            "old": old_th[:200] + ("..." if len(old_th) > 200 else ""),
+                            "new": new_desc_th[:200] + ("..." if len(new_desc_th) > 200 else ""),
+                            "reason": f"length changed from {len(old_th)} to {len(new_desc_th)} chars"
+                        })
 
     # Apply standard overrides
     for k, v in list(merged.items()):
@@ -371,5 +375,13 @@ if __name__ == "__main__":
     with open(md_out_path, 'w', encoding='utf-8') as f:
         f.write(md_text)
 
+    # Write conflict report
+    conflict_path = os.path.join(out_dir, "conflict_report.json")
+    with open(conflict_path, 'w', encoding='utf-8') as f:
+        json.dump(_conflicts, f, ensure_ascii=False, indent=2)
+
     print(f"SUCCESS: Generated glossary.json and glossary.md in {out_dir}")
     print(f"Total compiled unique items: {len(final_glossary)}")
+    print(f"Description conflicts flagged: {len(_conflicts)}")
+    if _conflicts:
+        print(f"  → See: {os.path.join(out_dir, 'conflict_report.json')}")
