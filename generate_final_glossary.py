@@ -52,7 +52,13 @@ canonical_keys = {}
 #         "associated_entities": ["검로아"]
 #     }
 # }
-entity_relations = {}
+entity_relations = {
+    # Example:
+    # "검무극": {
+    #     "faction": "화무결",
+    #     "associated_entities": ["검로아", "천검"]
+    # }
+}
 
 def generate_uid(category, english_version, counter):
     prefix = CATEGORY_PREFIX.get(category, "unk")
