@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Pipeline output (generated files)
+glossary.json
+glossary.md
+subagent_status.json
+
+# Raw extraction data (user's private data)
+raw_extractions/
+
+# OS
+.DS_Store
+Thumbs.db
