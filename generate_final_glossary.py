@@ -40,25 +40,53 @@ nomenclature_overrides = {}
 #     "이 공자": "검무극",
 #     "이공자": "검무극"
 # }
-canonical_keys = {}
-
-# Entity relations for knowledge graph linking
-# Key: Korean Original -> values: faction (Korean Original), entities (list of Korean Originals)
-# These are resolved to UIDs during post-processing
-# Example:
-# entity_relations = {
-#     "검무극": {
-#         "faction": "화무결",
-#         "associated_entities": ["검로아"]
-#     }
-# }
-entity_relations = {
-    # Example:
-    # "검무극": {
-    #     "faction": "화무결",
-    #     "associated_entities": ["검로아", "천검"]
-    # }
+canonical_keys = {
+    # Uncomment to merge name variants:
+    # "이 공자": "검무극(劍無極)",
+    # "이공자": "검무극(劍無極)",
 }
+
+# Entity relations — define faction_id and associated_entities per entity
+# Keys are Korean original names. Relations are resolved to UIDs during post-processing.
+entity_relations = {
+    "검무극(劍無極)": {
+        "faction": "천마신교(天魔神敎)",
+        "associated_entities": ["귀령자(鬼靈子)", "서대룡(徐大龍)", "이안(李安)", "고당(高黨)", "화무기(華武技)"]
+    },
+    "이안(李安)": {
+        "faction": "남도종",
+        "associated_entities": ["검무극(劍無極)", "서대룡(徐大龍)"]
+    },
+    "화무기(華武技)": {
+        "faction": "무림맹(武林盟)",
+        "associated_entities": ["검무극(劍無極)"]
+    },
+    "서대룡(徐大龍)": {
+        "faction": "천마신교(天魔神敎)",
+        "associated_entities": ["검무극(劍無極)", "이안(李安)"]
+    },
+    "고당(高黨)": {
+        "faction": "천마신교(天魔神敎)",
+        "associated_entities": ["검무극(劍無極)"]
+    },
+    "귀령자(鬼靈子)": {
+        "faction": "귀문(鬼門)",
+        "associated_entities": ["검무극(劍無極)", "서진(徐眞)"]
+    },
+    "혈천도마": {
+        "faction": "남도종",
+        "associated_entities": ["이안(李安)"]
+    },
+    "천마신교(天魔神敎)": {
+        "associated_entities": ["검무극(劍無極)", "서대룡(徐大龍)", "고당(高黨)", "구평호(具坪浩)"]
+    },
+    "무림맹(武林盟)": {
+        "associated_entities": ["화무기(華武技)", "일화검존(一花劍尊)"]
+    },
+}
+
+def safe_str(val):
+    return (val or "").strip()
 
 def generate_uid(category, english_version, counter):
     prefix = CATEGORY_PREFIX.get(category, "unk")
@@ -114,7 +142,7 @@ def merge_glossary(outputs):
 
     for ch_num, chapter in outputs:
         for entry in chapter:
-            raw_key = entry["korean_original"].strip()
+            raw_key = safe_str(entry.get("korean_original"))
             match_key = re.sub(r'\s*\([^)]*\)', '', raw_key).strip()
             if not match_key:
                 match_key = raw_key
@@ -135,22 +163,25 @@ def merge_glossary(outputs):
                     break
 
             if not found_key:
-                category = entry["category"].strip()
-                en_version = entry["english_version"].strip()
+                category = safe_str(entry["category"])
+                en_version = safe_str(entry["english_version"])
                 prefix = CATEGORY_PREFIX.get(category, "unk")
                 uid_counters[prefix] += 1
                 uid = generate_uid(category, en_version, uid_counters[prefix])
+
+                desc_en = safe_str(entry.get("description", {}).get("en", ""))
+                desc_th = safe_str(entry.get("description", {}).get("th", ""))
 
                 merged[raw_key] = {
                     "uid": uid,
                     "category": category,
                     "korean_original": raw_key,
                     "english_version": en_version,
-                    "thai_version": entry["thai_version"].strip(),
+                    "thai_version": safe_str(entry["thai_version"]),
                     "aliases": normalize_aliases(entry.get("aliases", [])),
                     "description": {
-                        "en": entry["description"]["en"].strip(),
-                        "th": entry["description"]["th"].strip()
+                        "en": desc_en,
+                        "th": desc_th
                     },
                     "source_chapters": [ch_num],
                     "faction_id": None,
@@ -160,16 +191,16 @@ def merge_glossary(outputs):
                 existing = merged[found_key]
                 existing["source_chapters"].append(ch_num)
 
-                new_en = entry["english_version"].strip()
-                if new_en != existing["english_version"]:
+                new_en = safe_str(entry["english_version"])
+                if new_en and new_en != existing["english_version"]:
                     existing["aliases"]["other_names"].add(existing["english_version"])
                     if len(new_en) > len(existing["english_version"]):
                         existing["english_version"] = new_en
                     else:
                         existing["aliases"]["other_names"].add(new_en)
 
-                new_th = entry["thai_version"].strip()
-                if new_th != existing["thai_version"]:
+                new_th = safe_str(entry["thai_version"])
+                if new_th and new_th != existing["thai_version"]:
                     existing["aliases"]["other_names"].add(existing["thai_version"])
                     if len(new_th) > len(existing["thai_version"]):
                         existing["thai_version"] = new_th
@@ -181,10 +212,12 @@ def merge_glossary(outputs):
                 for cat in ["titles", "mis_translations", "other_names"]:
                     existing["aliases"][cat].update(incoming[cat])
 
-                if len(entry["description"]["en"]) > len(existing["description"]["en"]):
-                    existing["description"]["en"] = entry["description"]["en"].strip()
-                if len(entry["description"]["th"]) > len(existing["description"]["th"]):
-                    existing["description"]["th"] = entry["description"]["th"].strip()
+                new_desc_en = safe_str(entry.get("description", {}).get("en", ""))
+                new_desc_th = safe_str(entry.get("description", {}).get("th", ""))
+                if new_desc_en and len(new_desc_en) > len(existing["description"]["en"]):
+                    existing["description"]["en"] = new_desc_en
+                if new_desc_th and len(new_desc_th) > len(existing["description"]["th"]):
+                    existing["description"]["th"] = new_desc_th
 
     # Apply standard overrides
     for k, v in list(merged.items()):
